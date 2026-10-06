@@ -1,0 +1,14 @@
+---
+import OrderDetailView from '@/components/react/OrderDetailView';
+import Layout from '@/layouts/Layout.astro';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+---
+
+<Layout title="Detalle del pedido | DinaStore">
+  <main class="mx-auto max-w-2xl px-6 py-16">
+    <OrderDetailView orderId={id!} client:load />
+  </main>
+</Layout>

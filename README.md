@@ -1,46 +1,67 @@
-# Astro Starter Kit: Basics
+# DinaStore Frontend
 
-```sh
-pnpm create astro@latest -- --template basics
+Customer-facing storefront for DinaStore. Astro (routing/SSR) + React (interactive islands) + Tailwind CSS v4.
+
+## Prerequisites
+
+- Node.js 22+
+- [pnpm](https://pnpm.io/)
+- The [backend](../backend) running locally at `http://localhost:3000` (catalog browsing and auth call it directly from the browser)
+
+## Setup
+
+```bash
+cp .env.example .env   # defaults to http://localhost:3000, edit PUBLIC_API_URL if the backend runs elsewhere
+pnpm install
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## Running the app
 
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-│   └── favicon.svg
-├── src
-│   ├── assets
-│   │   └── astro.svg
-│   ├── components
-│   │   └── Welcome.astro
-│   ├── layouts
-│   │   └── Layout.astro
-│   └── pages
-│       └── index.astro
-└── package.json
+```bash
+pnpm dev       # dev server at http://localhost:4321
+pnpm build     # production build to ./dist/
+pnpm preview   # preview a production build locally
 ```
 
-To learn more about the folder structure of an Astro project, refer to [our guide on project structure](https://docs.astro.build/en/basics/project-structure/).
+> **`pnpm build` currently fails with `NoAdapterInstalled`.** The catalog pages (`src/pages/catalog/*`) render on demand (`export const prerender = false`) so product/inventory data is always live rather than frozen at build time — this requires a server adapter (e.g. `@astrojs/node`, `@astrojs/vercel`, `@astrojs/netlify`) that hasn't been chosen yet, since it depends on the deployment target. `pnpm dev` is unaffected and fully functional for local development.
 
-## 🧞 Commands
+## Type checking
 
-All commands are run from the root of the project, from a terminal:
+```bash
+pnpm exec astro check
+```
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `pnpm install`             | Installs dependencies                            |
-| `pnpm dev`             | Starts local dev server at `localhost:4321`      |
-| `pnpm build`           | Build your production site to `./dist/`          |
-| `pnpm preview`         | Preview your build locally, before deploying     |
-| `pnpm astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `pnpm astro -- --help` | Get help using the Astro CLI                     |
+There is no test suite yet (no Vitest/Playwright configured).
 
-## 👀 Want to learn more?
+## Environment variables
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+| Variable | Purpose |
+| --- | --- |
+| `PUBLIC_API_URL` | Base URL of the backend API. Prefixed with `PUBLIC_` so Astro exposes it to client-side code too. |
+
+## Project structure
+
+```
+src/
+├── components/
+│   ├── astro/     # static/server-rendered components (Header, ProductCard)
+│   └── react/     # interactive islands, hydrated via client:load (forms, auth status)
+├── layouts/       # Layout.astro (shared <head>, header)
+├── lib/
+│   ├── api-client.ts   # typed fetch wrapper, throws ApiError on non-2xx
+│   ├── api/            # one module per backend domain (catalog.ts, auth.ts)
+│   ├── types.ts        # types mirroring backend response DTOs
+│   └── format.ts       # display formatting helpers (money, ...)
+├── stores/        # zustand stores (auth-store.ts persists the JWT/user to localStorage)
+└── pages/         # file-based routing
+```
+
+## Pages implemented so far
+
+| Route | Description |
+| --- | --- |
+| `/` | Home |
+| `/catalog` | Product listing, paginated, filterable by status/category via query params |
+| `/catalog/[slug]` | Product detail |
+| `/register`, `/login` | Auth forms (React islands) |
+| `/account` | Authenticated profile page — redirects to `/login` if not signed in |

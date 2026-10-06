@@ -1,19 +1,87 @@
 ---
+import { ClientRouter } from 'astro:transitions';
+import Header from '../components/astro/Header.astro';
+import Footer from '../components/react/Footer';
+import SessionWatcher from '../components/react/SessionWatcher';
+import Toaster from '../components/react/Toaster';
 import '../styles/global.css';
+
+interface Props {
+  title?: string;
+}
+
+const { title = 'DinaStore' } = Astro.props;
 ---
 
 <!doctype html>
-<html lang="en">
+<!-- `lang` is corrected before paint by the inline script below, and kept in
+     step afterwards by locale-store. The literal here is only what the server
+     emits, so it matches SSR_LOCALE in src/i18n/config.ts. -->
+<html lang="es">
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<link rel="icon" href="/favicon.ico" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Astro Basics</title>
+		<title>{title}</title>
+		<ClientRouter />
+		<script is:inline>
+			(function () {
+				try {
+					var raw = localStorage.getItem('dinastore-theme');
+					var preference = raw ? JSON.parse(raw).state.preference : 'system';
+					var resolved =
+						preference === 'system'
+							? window.matchMedia('(prefers-color-scheme: dark)').matches
+								? 'dark'
+								: 'light'
+							: preference;
+					document.documentElement.classList.toggle('dark', resolved === 'dark');
+				} catch (e) {
+					/* localStorage unavailable or malformed — fall back to light */
+				}
+			})();
+		</script>
+		<script is:inline>
+			// Sets <html lang> before paint, so assistive tech and :lang() rules
+			// never see the server's fallback. Mirrors detectLocale() in
+			// src/i18n/config.ts — change both together.
+			(function () {
+				try {
+					var raw = localStorage.getItem('dinastore-locale');
+					var stored = raw ? JSON.parse(raw).state.locale : null;
+					if (stored !== 'en' && stored !== 'es') {
+						stored = null;
+						var languages = navigator.languages || [navigator.language];
+						for (var i = 0; i < languages.length; i++) {
+							var base = String(languages[i]).toLowerCase().split('-')[0];
+							if (base === 'en' || base === 'es') {
+								stored = base;
+								break;
+							}
+						}
+					}
+					document.documentElement.lang = stored || 'es';
+				} catch (e) {
+					/* localStorage unavailable or malformed — keep the server's lang */
+				}
+			})();
+		</script>
 	</head>
-	<body>
-		<slot />
+	<!-- A flex column so the footer sits at the bottom of the viewport on short
+	     pages. The slot gets its own growing wrapper instead of the pages'
+	     <main> being the flex item directly: `mx-auto` on a flex item makes it
+	     shrink to its content rather than fill its max-width, which would
+	     narrow every page that centers itself that way. -->
+	<body class="flex min-h-dvh flex-col bg-surface text-content antialiased">
+		<Header />
+		<div class="flex-1">
+			<slot />
+		</div>
+		<Footer client:idle transition:persist="footer" />
+		<Toaster client:load transition:persist="toaster" />
+		<SessionWatcher client:load transition:persist="session-watcher" />
 	</body>
 </html>
 
@@ -22,6 +90,13 @@ import '../styles/global.css';
 	body {
 		margin: 0;
 		width: 100%;
+	}
+
+	/* Only <html> gets a fixed height. A fixed height on <body> would make it
+	   exactly one viewport tall with the page overflowing out of it, and the
+	   sticky navbar can only stick within its containing block, so it would
+	   scroll away after the first screen. */
+	html {
 		height: 100%;
 	}
 </style>

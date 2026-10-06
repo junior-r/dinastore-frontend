@@ -1,0 +1,10 @@
+---
+import OAuthCallbackView from '@/components/react/OAuthCallbackView';
+import Layout from '@/layouts/Layout.astro';
+---
+
+<Layout title="Iniciando sesión | DinaStore">
+  <main class="mx-auto max-w-sm px-6 py-16">
+    <OAuthCallbackView client:load />
+  </main>
+</Layout>

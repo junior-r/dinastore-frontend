@@ -1,0 +1,10 @@
+---
+import CheckoutView from '../components/react/CheckoutView';
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Finalizar compra | DinaStore">
+  <main class="mx-auto max-w-4xl px-6 py-16">
+    <CheckoutView client:load />
+  </main>
+</Layout>
