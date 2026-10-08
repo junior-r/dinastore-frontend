@@ -63,6 +63,10 @@
   --color-warning: #d97706;
   --color-warning-soft: #fffbeb;
 
+  /* Filled rating stars. Its own token rather than `accent` or `warning`:
+     accent turns violet in dark mode, and a rating is not a warning. */
+  --color-star: #e8a400;
+
   /*
    * The dimming layer behind a dialog, and the ink for text or icons sitting
    * on it (or on a darkened photo). Used with an opacity: `bg-scrim/50`.
@@ -125,6 +129,8 @@
 
   --color-success: #4ade80;
   --color-success-soft: #052e16;
+
+  --color-star: #fbbf24;
 
   --color-warning: #fbbf24;
   --color-warning-soft: #451a03;

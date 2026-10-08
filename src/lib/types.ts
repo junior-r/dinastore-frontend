@@ -251,6 +251,48 @@ export interface PaginatedComments {
   pageSize: number;
 }
 
+/** A shopper's star rating of a product, with or without a comment. */
+export interface Review {
+  id: string;
+  productId: string;
+  /** Whole stars, 1..5. */
+  rating: number;
+  /** Null when the rating was left without a comment. */
+  body: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A review as the public list returns it, with who wrote it. */
+export interface ListedReview extends Review {
+  author: {
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+  };
+}
+
+export interface RatingSummary {
+  /** Mean of every rating, to two decimals. Null while nobody has rated. */
+  average: number | null;
+  /** Every rating, with or without a comment. */
+  count: number;
+  /** How many ratings each star value got, keyed "1".."5". */
+  distribution: Record<string, number>;
+}
+
+export interface ProductReviews {
+  /** A page of the reviews that carry a comment. */
+  items: ListedReview[];
+  /** How many reviews carry a comment: what page/pageSize index into. */
+  total: number;
+  page: number;
+  pageSize: number;
+  summary: RatingSummary;
+  /** The reader's own review. Null when signed out or not rated yet. */
+  viewerReview: Review | null;
+}
+
 /** One visit to a product page, as the admin history returns it. */
 export interface ProductViewRecord {
   id: string;

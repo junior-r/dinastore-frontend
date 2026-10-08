@@ -23,6 +23,8 @@ docs summarize and cross-reference both rather than duplicating them.
     session persistence, the account page.
   - **[comments.md](./features/comments.md)** — public product comment
     threads.
+  - **[reviews.md](./features/reviews.md)** — star ratings on the product
+    page, with an optional comment.
   - **[admin.md](./features/admin.md)** — role-gated user/product/category
     management.
   - **[realtime.md](./features/realtime.md)** — the shared Socket.IO
