@@ -1,0 +1,10 @@
+---
+import AccountView from '../components/react/AccountView';
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Mi cuenta | DinaStore">
+  <main class="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
+    <AccountView client:load />
+  </main>
+</Layout>

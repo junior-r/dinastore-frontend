@@ -1,0 +1,12 @@
+---
+import RegisterForm from '../components/react/RegisterForm';
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Crear cuenta | DinaStore">
+  <!-- No width or padding here: AuthShell (inside RegisterForm) lays out the
+       whole split screen itself. -->
+  <main>
+    <RegisterForm client:load />
+  </main>
+</Layout>

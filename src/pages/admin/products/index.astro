@@ -1,0 +1,8 @@
+---
+import AdminProductsListView from '@/components/react/admin/AdminProductsListView';
+import AdminLayout from '@/layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Products | Admin | DinaStore">
+  <AdminProductsListView client:load />
+</AdminLayout>

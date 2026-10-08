@@ -1,1 +1,432 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+/* sonner injects this at runtime via a one-time document.head.appendChild,
+   which never re-runs after Astro's soft navigations and can be dropped by
+   the view-transition DOM swap — importing it here keeps it in the normal
+   build-time stylesheet so it's always present. */
+@import 'sonner/dist/styles.css';
+/* Self-hosted (no third-party font request). The `wdth` build carries the
+   width axis as well as weight, which is what lets headings use the expanded
+   cut (`font-stretch-*`) from the same family the body text is set in. */
+@import '@fontsource-variable/archivo/wdth.css';
+
+/* Enables manual light/dark switching via a `.dark` class on <html>, instead of
+   Tailwind v4's default (which only follows the OS `prefers-color-scheme`). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Semantic color tokens. Every component should use these (bg-surface,
+ * text-content, border-border, bg-brand, ...) instead of raw Tailwind
+ * palette classes (bg-white, text-neutral-900, ...) so the whole app's
+ * palette lives in one place and reacts to the `.dark` class automatically.
+ *
+ * Tailwind CSS 4.3.3's `@theme` block only recognizes a color token (and
+ * generates its bg-, text-, border- utilities) when given a literal value —
+ * `--color-surface: var(--surface)` silently fails to generate anything.
+ * So `@theme` below holds the light (default) literals, and `.dark`
+ * re-declares the exact same `--color-*` custom property names as plain CSS
+ * outside of `@theme`. Tailwind's generated utilities always read through
+ * `var(--color-surface)` etc regardless of how the token was declared, so the
+ * browser resolves the override via the ordinary cascade once `.dark` is
+ * present on <html> — no rebuild needed to switch.
+ */
+@theme {
+  /* One neutral family (cool zinc) in both themes, and no pure white or pure
+     black: the off-values keep photos and elevated panels from looking cut
+     out of the page. */
+  --color-surface: #fafafa;
+  --color-surface-muted: #f1f1f3;
+  --color-surface-hover: #e5e5e9;
+
+  --color-content: #16161a;
+  --color-content-muted: #5f5f69;
+  --color-content-inverse: #fafafa;
+
+  --color-border: #e3e3e8;
+  --color-ring: #2546d8;
+
+  /* The single accent. Cobalt rather than the stock Tailwind blue it replaced:
+     deep enough to carry light text at well past AA. */
+  --color-brand: #2546d8;
+  --color-brand-hover: #1b36b0;
+  --color-brand-content: #fafafa;
+
+  --color-accent: #f5b301;
+  --color-accent-hover: #d99a00;
+  --color-accent-content: #111827;
+
+  --color-danger: #dc2626;
+  --color-danger-soft: #fef2f2;
+
+  --color-success: #16a34a;
+  --color-success-soft: #f0fdf4;
+
+  --color-warning: #d97706;
+  --color-warning-soft: #fffbeb;
+
+  /*
+   * The dimming layer behind a dialog, and the ink for text or icons sitting
+   * on it (or on a darkened photo). Used with an opacity: `bg-scrim/50`.
+   *
+   * Deliberately NOT redeclared under `.dark`. A scrim darkens whatever is
+   * behind it in both themes, so unlike every other token here it must not
+   * flip. Before these existed, overlays used raw `bg-black/50` and
+   * `text-white`, the one place the "semantic tokens only" rule was broken.
+   */
+  --color-scrim: #09090b;
+  --color-scrim-content: #fafafa;
+
+  --font-sans: 'Archivo Variable', ui-sans-serif, system-ui, sans-serif;
+
+  /*
+   * Corner-radius scale, overridden here so the whole app moves together:
+   * controls (buttons, inputs, menus) are `rounded-md`, cards and product
+   * media are `rounded-lg` or larger, chips and icon buttons are
+   * `rounded-full`. Tailwind's stock md/lg (6px/8px) read as dated next to
+   * the larger media, and changing them per component would drift.
+   */
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+
+  /* `ease-out-expo`: fast start, long settle. Used for anything that enters. */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* The like button's pop (keyframe below), exposed as a real Tailwind
+     utility. The plain `.animate-like-pop` class can't take a variant; this
+     one can, which is what lets a tile play it with `group-hover:`. */
+  --animate-heart-pop: like-pop 450ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dark {
+  /* Dark mode: near-black surfaces with a vivid electric-blue/violet duo for
+     contrast — more saturated than the light palette on purpose. */
+  --color-surface: #0c0c0f;
+  --color-surface-muted: #17171b;
+  --color-surface-hover: #24242a;
+
+  --color-content: #f2f2f4;
+  --color-content-muted: #a0a0aa;
+  --color-content-inverse: #0c0c0f;
+
+  --color-border: #29292f;
+  --color-ring: #7d95ff;
+
+  /* Same cobalt hue as light mode, lifted so it holds against near-black and
+     carries dark text instead of light. */
+  --color-brand: #7d95ff;
+  --color-brand-hover: #9aadff;
+  --color-brand-content: #0c0c0f;
+
+  --color-accent: #c084fc;
+  --color-accent-hover: #d3a6fd;
+  --color-accent-content: #0a0a0c;
+
+  --color-danger: #f87171;
+  --color-danger-soft: #431417;
+
+  --color-success: #4ade80;
+  --color-success-soft: #052e16;
+
+  --color-warning: #fbbf24;
+  --color-warning-soft: #451a03;
+}
+
+/*
+ * Stacking order. Only these layers get a z-index; everything else relies on
+ * source order.
+ *   z-20  dropdown menus (inside the navbar's own stacking context)
+ *   z-30  the sticky navbar
+ *   z-50  overlays: Modal, Sidebar, SearchOverlay, ImageVariantCanvas
+ */
+
+/*
+ * Entrance motion for the storefront. Same approach as the like button below:
+ * plain keyframes on transform/opacity only, so they run on the compositor,
+ * and no animation library.
+ *
+ * `animate-rise` plays once on mount and is for above-the-fold content, where
+ * the order things arrive in tells the reader what to look at first. Siblings
+ * stagger by setting `--rise-index` (0, 1, 2, ...) inline.
+ */
+@keyframes rise-in {
+  from {
+    transform: translateY(1.25rem);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-rise {
+  animation: rise-in 700ms var(--ease-out-expo) both;
+  animation-delay: calc(var(--rise-index, 0) * 90ms);
+}
+
+/*
+ * Scroll reveals, the below-the-fold counterpart to `animate-rise`. The
+ * `data-reveal` attribute is set by hooks/useReveal.ts (an
+ * IntersectionObserver, not a scroll listener): "pending" once the hook has
+ * decided the element starts off screen, "in" when it scrolls into view.
+ *
+ * Nothing is hidden until that hook runs, on purpose. Content that is already
+ * visible at load, and every page if JavaScript never arrives, renders
+ * normally instead of sitting at opacity 0 waiting for a script.
+ *
+ * `reveal` animates the element itself. `reveal-group` animates its direct
+ * children instead, staggered by the `--rise-index` each one sets.
+ */
+.reveal[data-reveal='pending'],
+.reveal-group[data-reveal='pending'] > * {
+  opacity: 0;
+}
+
+.reveal[data-reveal='in'],
+.reveal-group[data-reveal='in'] > * {
+  animation: rise-in 800ms var(--ease-out-expo) both;
+  animation-delay: calc(var(--rise-index, 0) * 80ms);
+}
+
+/*
+ * Hero headline: each word slides up out of its own clipped box. The box
+ * (`word-mask`) carries bottom padding and an equal negative margin, because
+ * a box clipped at the line height would shave the descenders off g, y and
+ * the comma.
+ */
+@keyframes word-rise {
+  from {
+    transform: translateY(115%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.word-mask {
+  display: inline-block;
+  overflow: hidden;
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+  vertical-align: top;
+}
+
+.animate-word {
+  display: inline-block;
+  animation: word-rise 900ms var(--ease-out-expo) both;
+  animation-delay: calc(var(--rise-index, 0) * 70ms);
+}
+
+/* Slow ambient loops. Both move a few pixels over several seconds: enough to
+   read as alive, not enough to pull the eye off the headline. */
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-0.6rem);
+  }
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-6%, 8%) scale(1.12);
+  }
+}
+
+.animate-float {
+  animation: float-slow 7s ease-in-out infinite;
+  animation-delay: calc(var(--rise-index, 0) * -1.6s);
+}
+
+.animate-drift {
+  animation: drift 18s ease-in-out infinite;
+}
+
+/*
+ * Marquee (home page category strip). The track holds the list twice and
+ * slides exactly half its own width, so the second copy lands where the first
+ * began and the loop has no seam. It pauses while hovered or focused: the
+ * items are links, and a link has to hold still to be clicked.
+ */
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee {
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee var(--marquee-duration, 40s) linear infinite;
+}
+
+.marquee:hover .marquee-track,
+.marquee:focus-within .marquee-track {
+  animation-play-state: paused;
+}
+
+/*
+ * Dot-grid backdrop. Drawn in the border color so it follows the theme, and
+ * faded out toward the edges so it reads as texture behind the hero rather
+ * than a pattern laid over the page.
+ */
+.bg-dot-grid {
+  background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
+  background-size: 1.5rem 1.5rem;
+  mask-image: radial-gradient(ellipse 75% 70% at 60% 40%, black 30%, transparent 100%);
+}
+
+/*
+ * Cursor spotlight for tiles. hooks/useSpotlight.ts writes the pointer's
+ * position into --spot-x/--spot-y; the glow is mixed from `currentColor`, so
+ * one rule works on a brand tile, an ink tile and a muted tile, in either
+ * theme, without a color per variant.
+ */
+.spotlight {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.spotlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(
+    24rem circle at var(--spot-x, 50%) var(--spot-y, 50%),
+    color-mix(in srgb, currentColor 9%, transparent),
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 400ms ease;
+  pointer-events: none;
+}
+
+.spotlight:hover::before {
+  opacity: 1;
+}
+
+/* Hides the scrollbar of a container that has its own scroll controls. */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-word,
+  .animate-float,
+  .animate-drift,
+  .reveal[data-reveal='in'],
+  .reveal-group[data-reveal='in'] > * {
+    animation: none;
+  }
+
+  /* Without motion the marquee becomes a plain wrapping list: the duplicate
+     copy that only exists to close the loop is dropped, and the edge fade
+     goes with it since nothing is sliding out from under it. */
+  .marquee {
+    mask-image: none;
+  }
+
+  .marquee-track {
+    width: auto;
+    flex-wrap: wrap;
+    animation: none;
+  }
+
+  .marquee-track > [aria-hidden='true'] {
+    display: none;
+  }
+
+  .spotlight::before {
+    display: none;
+  }
+}
+
+/*
+ * Like-button animation (see components/react/ui/LikeButton.tsx).
+ *
+ * Plain CSS keyframes rather than a JS animation library: the whole effect is
+ * one transform per element and runs on the compositor, so it stays smooth
+ * even with a long comment thread mounted. Everything is additionally gated
+ * behind prefers-reduced-motion at the bottom of this block.
+ */
+@keyframes like-pop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.35);
+  }
+  65% {
+    transform: scale(0.92);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Each spark carries its own --spark-x/--spark-y so one keyframe can drive a
+   radial burst without a keyframe per direction. */
+@keyframes like-spark {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--spark-x), var(--spark-y)) scale(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes like-count-in {
+  from {
+    transform: translateY(0.6em);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-like-pop {
+  animation: like-pop 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.animate-like-spark {
+  animation: like-spark 420ms ease-out forwards;
+}
+
+.animate-like-count {
+  animation: like-count-in 220ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-like-pop,
+  .animate-like-count {
+    animation: none;
+  }
+
+  /* The sparks have no non-animated resting state worth showing, so they are
+     hidden outright rather than just left un-animated. */
+  .animate-like-spark {
+    animation: none;
+    display: none;
+  }
+}

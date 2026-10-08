@@ -1,0 +1,10 @@
+---
+import OrdersListView from '@/components/react/OrdersListView';
+import Layout from '@/layouts/Layout.astro';
+---
+
+<Layout title="Mis pedidos | DinaStore">
+  <main class="mx-auto max-w-2xl px-6 py-16">
+    <OrdersListView client:load />
+  </main>
+</Layout>

@@ -1,0 +1,12 @@
+---
+import LoginForm from '../components/react/LoginForm';
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Iniciar sesión | DinaStore">
+  <!-- No width or padding here: AuthShell (inside LoginForm) lays out the
+       whole split screen itself. -->
+  <main>
+    <LoginForm client:load />
+  </main>
+</Layout>
