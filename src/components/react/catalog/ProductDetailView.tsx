@@ -13,7 +13,9 @@ import { useFavoritesStore, useIsFavorite } from '@/stores/favorites-store';
 import ConfirmDialog from '../ui/ConfirmDialog';
 import QuantityStepper from '../ui/QuantityStepper';
 import CommentsSection from './CommentsSection';
+import ProductRatingSummary from './ProductRatingSummary';
 import RelatedProducts from './RelatedProducts';
+import ReviewsSection from './ReviewsSection';
 import VariantPicker from './VariantPicker';
 import { firstAvailableVariant, imagesForVariant } from '@/lib/variants';
 
@@ -221,6 +223,10 @@ function ProductDetailInner({ slug }: Props) {
             {product.name}
           </h1>
 
+          <div>
+            <ProductRatingSummary productId={product.id} />
+          </div>
+
           <p className="mt-3 text-2xl font-medium tabular-nums text-content">
             {format.money(priceCents, product.currency)}
           </p>
@@ -312,6 +318,7 @@ function ProductDetailInner({ slug }: Props) {
 
       {/* Capped so comment lines stay a readable length on a wide page. */}
       <div className="max-w-3xl">
+        <ReviewsSection productId={product.id} />
         <CommentsSection productId={product.id} />
       </div>
 

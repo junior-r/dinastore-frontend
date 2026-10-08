@@ -23,6 +23,10 @@ export function useFormat() {
     date: (value: string | Date) => new Date(value).toLocaleDateString(intlLocale),
     dateTime: (value: string | Date) => new Date(value).toLocaleString(intlLocale),
     duration: formatDuration,
+    // A star average, always to one decimal so "4" and "4.5" line up: "4.0",
+    // or "4,0" in Spanish.
+    rating: (value: number) =>
+      new Intl.NumberFormat(intlLocale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value),
     // The country's name in the active language, from its ISO code ("VE" is
     // "Venezuela"). Falls back to the code itself if the browser has no name
     // for it, so an unusual code is still shown rather than dropped.

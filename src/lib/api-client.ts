@@ -13,7 +13,7 @@ interface ApiErrorBody {
 }
 
 interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   token?: string;
   searchParams?: Record<string, string | number | string[] | undefined>;
