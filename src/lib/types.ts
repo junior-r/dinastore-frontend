@@ -320,6 +320,106 @@ export interface PaginatedProductViews {
   pageSize: number;
 }
 
+/** The history summed up for one product. */
+export interface ProductViewGroup {
+  /** Null once the product has been deleted. */
+  productId: string | null;
+  productName: string;
+  productSlug: string | null;
+  views: number;
+  visitors: number;
+  totalDurationMs: number;
+  /** Visits where the product was in the visitor's favorites. */
+  favorites: number;
+  lastViewedAt: string;
+}
+
+/** The history summed up for one person. */
+export interface VisitorViewGroup {
+  /** The account, or null for a browser that never signed in. */
+  user: { id: string; name: string; email: string } | null;
+  /** Set only when `user` is null. */
+  visitorId: string | null;
+  views: number;
+  products: number;
+  totalDurationMs: number;
+  favorites: number;
+  lastViewedAt: string;
+}
+
+export interface PaginatedGroups<T> {
+  items: T[];
+  /** Number of groups (products, or people), not of visits. */
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface DailyViews {
+  /** Calendar day in the viewer's time zone, `YYYY-MM-DD`. */
+  day: string;
+  views: number;
+  visitors: number;
+  durationMs: number;
+}
+
+export interface ForecastDay {
+  day: string;
+  expected: number;
+  low: number;
+  high: number;
+}
+
+export type ViewForecast =
+  | {
+      status: 'ok';
+      days: ForecastDay[];
+      expectedTotal: number;
+      lowTotal: number;
+      highTotal: number;
+      /** Views in the last seven full days. */
+      previousTotal: number;
+      direction: 'up' | 'down' | 'flat';
+      basedOnDays: number;
+    }
+  | { status: 'insufficient'; daysOfHistory: number; daysNeeded: number };
+
+export type MomentumDirection = 'new' | 'rising' | 'steady' | 'cooling';
+
+export interface ProductMomentum {
+  productId: string | null;
+  productName: string;
+  productSlug: string | null;
+  /** Views in the last 7 days. */
+  recent: number;
+  /** Views in the 7 days before those. */
+  previous: number;
+  /** Estimated views over the next 7 days. */
+  projected: number;
+  direction: MomentumDirection;
+}
+
+/** Everything the admin "Product views" page charts, for one set of filters. */
+export interface ViewInsights {
+  totals: {
+    views: number;
+    visitors: number;
+    products: number;
+    totalDurationMs: number;
+    favorites: number;
+    avgDurationMs: number;
+    /** 0..1 */
+    favoriteRate: number;
+  };
+  /** One entry per day, oldest first, zero-filled. */
+  daily: DailyViews[];
+  topProducts: ProductViewGroup[];
+  /** `country` is null for visits that couldn't be placed. */
+  countries: { country: string | null; views: number }[];
+  forecast: ViewForecast;
+  movers: ProductMomentum[];
+}
+
 export interface CommentLikeState {
   commentId: string;
   liked: boolean;

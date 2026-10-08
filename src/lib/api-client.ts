@@ -75,6 +75,30 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   return data as T;
 }
 
+/**
+ * Fetches a file (a generated spreadsheet, say) instead of JSON. Errors are
+ * still JSON, so a failure reads the same `ApiError` as everywhere else.
+ */
+export async function apiFetchBlob(
+  path: string,
+  options: Pick<RequestOptions, 'token' | 'searchParams'> = {},
+): Promise<Blob> {
+  const headers: Record<string, string> = {};
+  if (options.token) {
+    headers.Authorization = `Bearer ${options.token}`;
+  }
+
+  const response = await fetch(buildUrl(path, options.searchParams), { headers });
+
+  if (!response.ok) {
+    const body = ((await response.json().catch(() => null)) ?? {}) as ApiErrorBody;
+    const message = Array.isArray(body.message) ? body.message.join(', ') : (body.message ?? 'Request failed');
+    throw new ApiError(response.status, message);
+  }
+
+  return response.blob();
+}
+
 interface UploadOptions {
   token?: string;
   fieldName?: string;

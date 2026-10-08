@@ -29,7 +29,14 @@ import {
   type UpdateProductPayload,
   type UpdateProductVariantEntry,
 } from '../api/admin';
-import { listProductViews, type ListProductViewsParams } from '../api/analytics';
+import {
+  getProductViewInsights,
+  listProductViews,
+  listProductViewsByProduct,
+  listProductViewsByVisitor,
+  type ListProductViewsParams,
+  type ProductViewFilterParams,
+} from '../api/analytics';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTranslation } from '@/i18n';
 import type { Permission, ProductStatus, Role } from '../types';
@@ -47,15 +54,55 @@ function useAdminEnabled() {
 
 // -- Analytics ----------------------------------------------------------
 
-export function useAdminProductViews(params: ListProductViewsParams = {}) {
+// The page shows one table at a time (visits, by product, by visitor), so
+// each list hook takes `active`: the two that are not on screen don't fetch.
+export function useAdminProductViews(params: ListProductViewsParams = {}, active = true) {
   const token = useToken();
   const enabled = useAdminEnabled();
 
   return useQuery({
     queryKey: ['admin', 'product-views', params],
     queryFn: () => listProductViews(token, params),
-    enabled,
+    enabled: enabled && active,
     // Keeps the current rows up while the next page or search loads.
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useAdminProductViewsByProduct(params: ListProductViewsParams = {}, active = true) {
+  const token = useToken();
+  const enabled = useAdminEnabled();
+
+  return useQuery({
+    queryKey: ['admin', 'product-views', 'by-product', params],
+    queryFn: () => listProductViewsByProduct(token, params),
+    enabled: enabled && active,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useAdminProductViewsByVisitor(params: ListProductViewsParams = {}, active = true) {
+  const token = useToken();
+  const enabled = useAdminEnabled();
+
+  return useQuery({
+    queryKey: ['admin', 'product-views', 'by-visitor', params],
+    queryFn: () => listProductViewsByVisitor(token, params),
+    enabled: enabled && active,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useAdminProductViewInsights(params: ProductViewFilterParams = {}) {
+  const token = useToken();
+  const enabled = useAdminEnabled();
+
+  return useQuery({
+    queryKey: ['admin', 'product-views', 'insights', params],
+    queryFn: () => getProductViewInsights(token, params),
+    enabled,
+    // Keeps the charts drawn while a changed filter loads, instead of
+    // collapsing the page to skeletons on every keystroke of a search.
     placeholderData: keepPreviousData,
   });
 }
